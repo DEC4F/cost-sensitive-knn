@@ -1,0 +1,106 @@
+* Cost-Sensitive KNN
+** abstract
+ Cost sensitive learning is useful when the training data contains skewed class distribution. This paper proposed two new kNN-based cost sensitive learning algorithms *direct-CS-kNN* and *distance-CS-kNN*.
+ - misclassification cost is minimized
+ - outperformed CS-C4.5 on several UCI datasets
+ - several optimization strategies are used, including smoothing, minimum-cost k value, feature selection and ensemble learning, to improve the performance.
+
+** intro
+*** CS learning
+ $$L(x, i) = \sum_{j=1}^n p(j|x)C(i,j)$$
+*** kNN
+ - instance-based learning
+ - Learning:
+   + entire training data is stored in memory and prediction is made by majority vote
+   + three key elements:
+     1. labeled examples
+     2. distance function that computes distance between examples
+     3. K value, the number of nearest neighbors.
+ - Prediction:
+   + calculate the distance of new example to labeled example
+   + mark the k nearest neighbors (distance as metric)
+   + uses voting function to decide the label of new example
+**** distance function
+  most frequently used are Euclidean distance $$D(X,Y) = \sqrt{\sum_{i=1}^{D}(X_i, Y_i)^2}$$
+
+**** voting function
+  two major voting function
+  1. majority voting: $$y' = argnax_v \sum_{xi,yi \in D_Z} \delta(v,y_i)$$
+  2. distance weighted voting $$y' = argnax_v \sum_{xi,yi \in D_Z} w_i \cdot \delta(v,y_i)$$, where w_i = \frac{1}{d(x', x_i)^2}
+
+**** issues
+  - K value: if K is too small, result would be sensitive to noise. On the flip side, the classifier would include many examples from another class.
+  - majority vote: could be an issue if nearest neighbors vary widely in the distance. But can be solved by weighted voting.
+
+**** sum
+ - kNN is lazy. building is simple but predicting is expensive.
+
+** two CS kNN algorithms
+
+*** direct CS-kNN
+ - classifer that gives cond probability estimate for training examples also gives that for test examples.
+ - with which, we can compute optimal class label for test example with cost matrix
+
+**** steps
+ - select k nearest neighbors
+ - calculate class probability estimates: $$P(i|x) = \frac{K_i}{K}$$
+ - K_i is number of selected neighbors labeled as i
+ - plug this into the loss function L(x,i) = \sum_{j=1}^{n}p(j|x)C(i,j), we can directly get the optimal class label
+
+**** difference
+ - kNN performance does not change very much by k value
+ - direct-CS-kNN would minimize the loss, so probability estimate by original kNN is more important
+ - k value can be chosen with these methods
+   1. fixed k
+   2. cross validation
+   3. choose k that minimize loss on training set
+
+**** issues
+ - if k is too small, prob estimate would be unstable and easy to overfit, increasing misclassification cost on test example
+ - snesitive to noise, would generate poor probability estimate
+
+**** improvements
+***** new m-estimates
+ - two changes to original m-estimates:
+   1. use CV to determine m value for different datasets
+   2. use smooth probability estimate
+ - with m estimates, the prob est formula becomes $$P(i|x) = \frac{K}{K+m}*\frac{K_i}{K} + \frac{m}{K+m}*b$$
+ - m controls balance bewteen relative freq and prior prob with following impact:
+   1. m can be set higher so that noise in $\frac{K_i}{K}$ would be less important
+   2. With small k, the first term approx to 0 and the third term approx to 1, making the est closer to base rate b
+
+*** distance CS-kNN
+ skipped
+
+** enhancement
+*** caliberation methods
+ - laplace correction
+ - m-smoothing
+
+*** feature selection
+
+*** enesemble
+
+*** CS feature selection
+
+*** CS stacking
+
+
+* IMC Stacking
+** abstract
+   - a Feature Inverse Mapping based CS Stacking learning is proposed to do stacking on imbalance dataset
+   - CSLR is integrated and used as final classifier regarding different costs to majority and minority samples
+   - a quick & good FIM technique is used to IMCStacking to maximize use of CV during ensemble
+** intro
+*** DPE
+ensemble methods that combined with re-sampling is Data Processing based Ensemble (DPE)
+ - boosting-based
+   + adaboost
+ - bagging-based
+   + over-bagging
+   + under-bagging
+   + hybrid-bagging
+ - hybrid
+   + EasyEnsemble, BalanceCascade
+*** CS Learning
+DPE strongly depend o
