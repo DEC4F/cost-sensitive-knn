@@ -2,7 +2,7 @@
 """
 this script allows user to train and evaluate the performance of Direct-CS-kNN
 """
-# Author: Decaf
+# Author: Dec4f
 # License: GPLv3
 
 import sys

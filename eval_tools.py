@@ -2,7 +2,7 @@
 """
 This evaluation module contains implementations of several important metric functions
 """
-# Author: Decaf
+# Author: Dec4f
 # License: GPLv3
 
 def accuracy(y_true, y_pred):

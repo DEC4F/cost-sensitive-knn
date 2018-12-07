@@ -5,7 +5,7 @@ Qin, Zhenxing, et al. "Cost-sensitive classification with k-nearest neighbors." 
 ----------
 a brief summary of the paper is in the .org file, which will be converted to README soon.
 """
-# Author: Decaf
+# Author: Dec4f
 # License: GPLv3
 
 __all__ = ['DirectCSkNN']
