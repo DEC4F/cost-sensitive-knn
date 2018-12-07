@@ -11,6 +11,7 @@ from copy import deepcopy
 import numpy as np
 import mldata # ignored private C.45 parser
 from cs_knn import DirectCSkNN
+from cs_stacking import BaseStacking
 from eval_tools import *
 from split_tools import KFoldCV
 
@@ -20,6 +21,10 @@ COST_MATRIX = np.array([[0.0, 0.25],
 N_NEIGHBORS = 5
 BASE_CONFIG = [COST_MATRIX, N_NEIGHBORS, 'euclidean']
 SMOOTHING_CONFIG = [COST_MATRIX, N_NEIGHBORS, 'euclidean', 100, 0.8]
+STACKING_CONFIG = [[0.01, 100, 10], N_FOLD]
+STK_BASE_CONFIG = [[COST_MATRIX, 1, 'euclidean'],
+                   [COST_MATRIX, 10, 'euclidean'],
+                   [COST_MATRIX, 50, 'euclidean']]
 
 def main():
     """
@@ -29,7 +34,7 @@ def main():
     file_path, use_full_sample, opt_method = sys.argv[1:4]
     examples = get_dataset(file_path)
     clf = parse_enhance_method(opt_method)
-    if int(use_full_sample):
+    if int(use_full_sample) and not isinstance(clf, BaseStacking):
         samples = examples[:, 1:-1]
         targets = examples[:, -1]
         clf.fit(samples, targets)
@@ -73,8 +78,11 @@ def parse_enhance_method(opt_method):
         return DirectCSkNN(*BASE_CONFIG)
     # using m-smoothing
     elif opt_method == methods[1]:
-        print("Learning with M-smoothing...")
+        print("Learning with M-Smoothing...")
         return DirectCSkNN(*SMOOTHING_CONFIG)
+    elif opt_method == methods[2]:
+        print("Learning with Stacking...")
+        return BaseStacking(*STACKING_CONFIG)
     else:
         raise Exception("Error Code: UNKNOWN_IO_ERROR")
 
@@ -88,30 +96,43 @@ def cv_eval(clf, examples):
     for i, (train_idx, test_idx) in enumerate(kcv.split(examples)):
         train_set = examples[train_idx]
         test_set = examples[test_idx]
-        x_train = train_set[:, 1:-1]
-        y_train = train_set[:, -1]
-        x_test = test_set[:, 1:-1]
-        y_test = test_set[:, -1]
         model = deepcopy(clf)
-        model.fit(x_train, y_train)
-
-        y_pred = np.zeros(len(y_test), dtype=bool)
-        cost_list = np.zeros(len(y_test), dtype=float)
-        for j, row_test in enumerate(x_test):
-            y_pred[j], cost_list[j] = model.predict(row_test)
-        acc[i] = accuracy(y_test, y_pred)
-        prec[i] = precision(y_test, y_pred)
-        rec[i] = recall(y_test, y_pred)
-        spec[i] = specificity(y_test, y_pred)
-        cost[i] = np.mean(cost_list)
-
+        if isinstance(model, BaseStacking):
+            clfs = [DirectCSkNN(*STK_BASE_CONFIG[i]) for i in range(3)]
+            acc[i], prec[i], rec[i], spec[i] = cv_with_stacking(model, train_set, test_set, clfs)
+        else:
+            acc[i], prec[i], rec[i], spec[i], cost[i] = cv_non_stacking(model, train_set, test_set)
     print("accuracy = ", acc)
     print("precision = ", prec)
-    print("recll = ", rec)
+    print("recall = ", rec)
     print("specificity = ", spec)
-    print("misclassification cost = ", cost)
-
+    if not isinstance(model, BaseStacking):
+        print("misclassification cost = ", cost) # no cost for base stacking
     return [acc, prec, rec, spec, cost]
+
+def cv_with_stacking(model, train_set, test_set, clfs):
+    """
+    get prediction with stacking model
+    """
+    y_test = test_set[:, -1]
+    y_pred = model.fit_pred(train_set, test_set, clfs)
+    return accuracy(y_test, y_pred), precision(y_test, y_pred), recall(y_test, y_pred), specificity(y_test, y_pred)
+
+def cv_non_stacking(model, train_set, test_set):
+    """
+    get prediction with base learner
+    """
+    x_train = train_set[:, 1:-1]
+    y_train = train_set[:, -1]
+    x_test = test_set[:, 1:-1]
+    y_test = test_set[:, -1]
+    model.fit(x_train, y_train)
+
+    y_pred = np.zeros(len(y_test), dtype=bool)
+    cost_list = np.zeros(len(y_test), dtype=float)
+    for j, row_test in enumerate(x_test):
+        y_pred[j], cost_list[j] = model.predict(row_test)
+    return accuracy(y_test, y_pred), precision(y_test, y_pred), recall(y_test, y_pred), specificity(y_test, y_pred), np.mean(cost_list)
 
 if __name__ == '__main__':
     main()

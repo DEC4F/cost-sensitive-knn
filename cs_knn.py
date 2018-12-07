@@ -26,7 +26,7 @@ class DirectCSkNN():
         self.metric = metric
         self.m_est = m_est
         self.base_rate = base_rate
-        self.label_encoder_dict = {}
+        self.encoder_dict = {}
         self.X = None
         self.y = None
 
@@ -49,9 +49,11 @@ class DirectCSkNN():
         processed_x = []
         for i, val in enumerate(new_x):
             if isinstance(val, str):
-                if val not in self.label_encoder_dict[i].keys():
-                    self.label_encoder_dict[i][val] = len(self.label_encoder_dict)
-                processed_x.append(self.label_encoder_dict[i][val])
+                if i not in self.encoder_dict.keys():
+                    self.encoder_dict[i] = {}
+                if val not in self.encoder_dict[i].keys():
+                    self.encoder_dict[i][val] = len(self.encoder_dict)
+                processed_x.append(self.encoder_dict[i][val])
             else:
                 processed_x.append(val)
         k_neigh_idx = self.find_k_neighbors(np.array(processed_x))
@@ -75,7 +77,7 @@ class DirectCSkNN():
 
         loss = {}
         for i, i_label in enumerate(np.unique(self.y)):
-            loss[i_label] = 0
+            loss[i_label] = 0.0
             for j, j_label in enumerate(np.unique(self.y)):
                 k_j = len(k_labels[k_labels == j_label])
                 prob_j = prob_est(k_j)
@@ -87,7 +89,7 @@ class DirectCSkNN():
         assign an integer value to each unique string value
         """
         label_dict = {val : idx for idx, val in enumerate(np.unique(attr))}
-        self.label_encoder_dict[i] = label_dict
+        self.encoder_dict[i] = label_dict
         return np.array([label_dict[val] for val in attr])
 
     def find_k_neighbors(self, new_x):
@@ -106,6 +108,10 @@ class DirectCSkNN():
         calculates the distance between two examples with three distance functions
         ----------
         """
+        if a.shape != b.shape:
+            print("a", a)
+            print("b", b)
+            print(self.encoder_dict)
         dist_func_dict = {
             'euclidean' : np.sqrt(sum((a - b)**2)),
             'manhattan' : sum(abs(a - b)),

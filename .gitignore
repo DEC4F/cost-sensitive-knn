@@ -105,3 +105,6 @@ venv.bak/
 
 # private C.45 parser
 mldata.py
+
+# not ready yet
+log_reg.py
